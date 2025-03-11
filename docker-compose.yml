@@ -1,0 +1,52 @@
+version: '2'
+
+services:
+  semantic_clustering:
+    container_name: backend
+    build: .
+    tty: true
+    volumes:
+      - ./src:/main/src
+    environment:
+      - RABBIT_MQ_HOST=${RABBIT_MQ_HOST}
+      - RABBIT_MQ_PORT=${RABBIT_MQ_PORT}
+      - RABBIT_MQ_USERNAME=${RABBIT_MQ_USERNAME}
+      - RABBIT_MQ_PASSWORD=${RABBIT_MQ_PASSWORD}
+      - RABBIT_MQ_TOPIC_CLUSTERING_REQUEST_QUEUE=${RABBIT_MQ_TOPIC_CLUSTERING_REQUEST_QUEUE}
+      - RABBIT_MQ_CLUSTERED_MENTION_STREAM_QUEUE=${RABBIT_MQ_CLUSTERED_MENTION_STREAM_QUEUE}
+      - RABBIT_MQ_TOPIC_CLUSTERING_INVALID_REQUEST_QUEUE=${RABBIT_MQ_TOPIC_CLUSTERING_INVALID_REQUEST_QUEUE}
+      - RABBIT_MQ_TOPIC_CLUSTERING_STATUS_QUEUE=${RABBIT_MQ_TOPIC_CLUSTERING_STATUS_QUEUE}
+      - LOG_PATH=${LOG_PATH}
+      - SOLR_DOMAIN=${SOLR_DOMAIN}
+      - SOLR_USERNAME=${SOLR_USERNAME}
+      - SOLR_PASSWORD=${SOLR_PASSWORD}
+      - SOLR_TIMEOUT=${SOLR_TIMEOUT}
+      - EMBEDDING_SERVICE_HOST=${EMBEDDING_SERVICE_HOST}
+      - EMBEDDING_SERVICE_USERNAME=${EMBEDDING_SERVICE_USERNAME}
+      - EMBEDDING_SERVICE_PASSWORD=${EMBEDDING_SERVICE_PASSWORD}
+      - MAX_SENDING_MENTION=${MAX_SENDING_MENTION}
+      - CLUSTERING_CORE=${CLUSTERING_CORE}
+    networks:
+      - semantic_clustering-app-tier
+    depends_on:
+      - rabbitmq
+  queue:
+    container_name: semantic_clustering-queue
+    image: "rabbitmq:3-management"
+    networks:
+      - semantic_clustering-app-tier
+  rabbitmq:
+    container_name: semantic_clustering-queue-rabbitmq
+    image: rabbitmq:3-management
+    restart: unless-stopped
+    ports:
+      - 5672:5672
+      - 15672:15672
+    volumes:
+        - ./zdocker/data/queue:/bitnami
+    networks:
+        - semantic_clustering-app-tier
+
+networks:
+  semantic_clustering-app-tier:
+    driver: bridge

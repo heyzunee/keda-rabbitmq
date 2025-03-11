@@ -1,0 +1,29 @@
+#!/bin/bash
+
+export KNATIVE_SERVING_VERSION="1.15.0"
+
+export KNATIVE_EVENTING_VERSION="1.15.0"
+
+export KNATIVE_GCP_VERSION="0.23.0"
+
+export TEKTON_VERSION="0.61.0"
+
+export PROJECT_ID="yumao-dev"
+
+export CLUSTER_NAME="knative-100"
+
+export CLUSTER_REGION="us-central1"
+
+export CLUSTER_ZONE="${CLUSTER_REGION}-b"
+
+export CLUSTER_START_NODE_SIZE=3
+
+export CLUSTER_MIN_NODE_SIZE=3
+
+export CLUSTER_MAX_NODE_SIZE=10
+
+export CLUSTER_NODE_MACHINE_TYPE="n1-standard-4"
+
+export CLUSTER_MASTER_VERSION="latest"
+
+export KEDA_VERSION="2.15.1"

@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keda-rabbitmq
+  namespace: default
+  labels:
+    app: keda-rabbitmq
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: keda-rabbitmq
+  template:
+    metadata:
+      labels:
+        app: keda-rabbitmq
+    spec:
+      containers:
+        - name: keda-rabbitmq
+          image: IMAGE
+          imagePullPolicy: Always
+          envFrom:
+            - secretRef:
+                name: keda-rabbitmq-secret
+          
+          volumeMounts:
+            - name: secret-volume
+              mountPath: /etc/secret-volume
+              readOnly: true
+      volumes:
+        - name: secret-volume
+          secret:
+            secretName: keda-rabbitmq-secret
