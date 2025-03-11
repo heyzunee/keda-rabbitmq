@@ -9,7 +9,8 @@ This guide explains how to deploy [KEDA](https://keda.sh/) with RabbitMQ as an e
 5. Test the setup.
 
 ## Step 1: Initialize the gcloud CLI
-Install Google Cloud SDK: Follow the instructions to install the Google Cloud SDK: Install SDK
+Follow the instructions to install the Google Cloud SDK: [Install SDK](https://cloud.google.com/sdk/docs/install-sdk#linux)
+
 Initialize the gcloud CLI
 ```sh
 which gcloud
