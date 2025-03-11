@@ -1,66 +1,125 @@
-# Project Setup and Usage Guide
+# Deploy KEDA with RabbitMQ on Google Cloud
 
-## 1. Install Google Cloud SDK
-Follow the instructions to install the Google Cloud SDK: [Install SDK](https://cloud.google.com/sdk/docs/install-sdk#deb)
+## Overview
+This guide explains how to deploy [KEDA](https://keda.sh/) with RabbitMQ as an event source on Google Cloud Kubernetes Engine (GKE). We will:
+1. Set up a GKE cluster.
+2. Install KEDA.
+3. Deploy RabbitMQ.
+4. Create a KEDA ScaledObject to auto-scale pods.
+5. Test the setup.
 
-## 2. Initialize the gcloud CLI
+## Step 1: Initialize the gcloud CLI
+Install Google Cloud SDK: Follow the instructions to install the Google Cloud SDK: Install SDK
+Initialize the gcloud CLI
 ```sh
 which gcloud
 rm ...
 ./google-cloud-sdk/bin/gcloud init
 gcloud --version
 ```
-
-### List gcloud components
+List gcloud components
 ```sh
 gcloud components list
 ```
-
-### Install kubectl client
+Install kubectl client
 ```sh
 gcloud components install gke-gcloud-auth-plugin
 gcloud components install kubectl
 kubectl version
 ```
 
-## 3. Google Cloud Storage (GCS)
-### Create service account
-Navigate to IAM & Admin → Service Accounts → Create service account
-
-### Add role
-Navigate to IAM → Add another role: Storage Object Admin & Storage Object Creator
-
-### Activate service account
+## Step 2: Create a GKE Cluster
 ```sh
-gcloud auth activate-service-account --key-file="/path/to/your/service-account-file.json"
+./setup/create-gke-cluster
 ```
 
-### Set google application credentials
+## Step 3: Install KEDA
 ```sh
-export GOOGLE_APPLICATION_CREDENTIALS="/path/to/your/service-account-file.json"
+./setup/install-keda
 ```
 
-### Check access token
+Verify KEDA installation:
 ```sh
-gcloud auth application-default print-access-token
+kubectl get pods -n keda
 ```
 
-## 4. Create GKE cluster
-```sh
-./create-gke-cluster
+## Step 4: Deploy a Sample Worker App
+Create a `deployment.yaml`:
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keda-rabbitmq
+  namespace: default
+  labels:
+    app: keda-rabbitmq
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: keda-rabbitmq
+  template:
+    metadata:
+      labels:
+        app: keda-rabbitmq
+    spec:
+      containers:
+        - name: keda-rabbitmq
+          image: IMAGE
+          imagePullPolicy: Always
+          envFrom:
+            - secretRef:
+                name: keda-rabbitmq-secret
+          
+          volumeMounts:
+            - name: secret-volume
+              mountPath: /etc/secret-volume
+              readOnly: true
+      volumes:
+        - name: secret-volume
+          secret:
+            secretName: keda-rabbitmq-secret
 ```
-
-## 5. KEDA RabbitMQ
-
-### Build and Push Docker Image
-```sh
-cd keda-rabbitmq
-docker build -t keda:v1 .
-docker tag keda:v1 us-east1-docker.pkg.dev/yumao-dev/my-repo/keda:v1
-docker push us-east1-docker.pkg.dev/yumao-dev/my-repo/keda:v1
-```
-
-### Deploy to Kubernetes
+Apply the deployment:
 ```sh
 kubectl apply -f deployment.yaml
+```
+
+## Step 5: Configure KEDA ScaledObject
+Create `scaledobject.yaml`:
+```yaml
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: rabbitmq-scaledobject
+  namespace: default
+spec:
+  scaleTargetRef:
+    name: keda-rabbitmq
+  minReplicaCount: 0
+  maxReplicaCount: 5
+  triggers:
+    - type: rabbitmq
+      metadata:
+        protocol: amqp
+        queueName: QUEUE_NAME
+        mode: QueueLength
+        value: "2"
+      authenticationRef:
+        name: rabbitmq-trigger-auth
+```
+Apply the configuration:
+```sh
+kubectl apply -f scaledobject.yaml
+```
+
+## Step 6: Test the Scaling
+1. Publish messages to RabbitMQ queue:
+```sh
+python -m src.send
+```
+
+2. Check if the pods scale up:
+```sh
+kubectl get pods -w
 ```
